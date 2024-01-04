@@ -1,4 +1,5 @@
 import click
+import db
 
 @click.command()
 @click.option('--author', '--a', prompt='Author of the Book')
@@ -6,9 +7,14 @@ import click
 @click.option('--amount', '--n', prompt='Total no. of Book: ')
 def add_book(author, title, amount):
     """Add a Book"""
-    click.echo(f"Book: {title}!")
-    click.echo(f"Author: {author}!")
-    click.echo(f"No. of Copies: {amount}!")
+    db.insert_book(author, title, amount)
+    
+    data = db.fetch_book()
+
+    # Print the fetched data
+    print("Data in the table:")
+    for row in data:
+        print(row)
 
 if __name__ == '__main__':
     add_book()
