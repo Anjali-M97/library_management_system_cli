@@ -3,11 +3,19 @@ import db
 
 @click.group()
 def cli():
+    '''Welcom to the Library...'''
     pass
 
 @cli.group()
 def admin():
+    '''Admin Access'''
     pass
+
+# try and except
+# remove lms from git and gitignore
+# requirements
+# formatting
+# pycache
 
 @admin.command()
 @click.option('--author', '--a', prompt='Author of the Book')
@@ -18,9 +26,11 @@ def add_book(author, title, amount):
     db.insert_book(title, author, amount)
 
 @admin.command()
-def lend_record():
+@click.option('--sname', '--nm', help='Name of the Student', default=None)
+@click.option('--title', '--t', help='Title of Book: ', default=None)
+def lend_record(sname, title):
     '''View Lend Record'''
-    data = db.view_record()
+    data = db.view_record(sname, title)
     
     print("Data in the table:")
     for row in data:
@@ -79,6 +89,7 @@ def return_book(sname, id):
 
 @cli.group()
 def students():
+    '''Members Access'''
     pass
 
 @students.command()

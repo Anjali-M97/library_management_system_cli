@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 con = sqlite3.connect('lms.db')
 cur = con.cursor()
 
@@ -15,7 +16,7 @@ cur.execute('''
 cur.execute('''
     CREATE TABLE IF NOT EXISTS students (
             name TEXT NOT NULL,
-            issued_book TEXT,
+            issued_book TEXT NOT NULL,
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             UNIQUE(name, issued_book)
     )
