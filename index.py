@@ -11,8 +11,7 @@ def admin():
     '''Admin Access'''
     pass
 
-# try and except
-# remove lms from git and gitignore
+# To Do:
 # requirements
 # formatting
 # pycache
@@ -78,7 +77,10 @@ def update_book(author, title, amount, id):
 def retrieve(name, id):
     '''Issue a Book'''
     book= db.retrieve_book(name, id)
-    click.echo(f'{book} has been issued to you!')
+    if book:
+        click.echo(f'{book} has been issued to you!')
+    else:
+        print('No such book or wrong id...')
 
 @admin.command()
 @click.option('--sname', '--nm', prompt= 'Enter Students Name')
