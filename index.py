@@ -12,7 +12,6 @@ def admin():
     pass
 
 # To Do:
-# requirements
 # formatting
 # pycache
 
