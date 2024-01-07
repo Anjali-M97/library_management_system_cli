@@ -192,35 +192,3 @@ def my_book(sid):
     result_rows = [column_names] + rows
     close_connection(con)
     return result_rows
-##################################################################################
-'''def fetch_book():
-    con = connect_to_db()
-    cur = con.cursor()
-    cur.execute('SELECT * FROM books')
-    rows = cur.fetchall()
-    column_names = [column[0] for column in cur.description]
-    result_rows = [column_names] + rows
-    close_connection(con)
-    return result_rows
-
-def view_record(name, title):
-    con = connect_to_db()
-    cur = con.cursor()
-
-    if title!=None and name!=None:
-        cur.execute('SELECT id FROM students WHERE name = ?', (name,))
-        cur.execute('SELECT id FROM books WHERE title = ?', (title,))
-    elif title!=None and name==None:
-        cur.execute('SELECT id FROM books WHERE title = ?', (title,))
-    elif title==None and name!=None:
-        cur.execute('SELECT id FROM students WHERE name = ?', (name,))
-    else:
-        cur.execute('SELECT id FROM students')
-        id = cur.fetchall()
-        cur.execute('SELECT * FROM lending_record where id = ?', (id,))
-    
-    rows = cur.fetchall()
-    column_names = [column[0] for column in cur.description]
-    result_rows = [column_names] + rows
-    close_connection(con)
-    return result_rows'''
