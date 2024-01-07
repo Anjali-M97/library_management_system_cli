@@ -5,8 +5,11 @@ def connect_to_db():
     con = sqlite3.connect('lms.db')
     return con
 
+def close_connection(con):
+    con.commit()
+    con.close()
 
-def insert_book(title, author, amount):
+def add_book(title, author, amount):
     con = connect_to_db()
     cur = con.cursor()
     try:
@@ -15,51 +18,135 @@ def insert_book(title, author, amount):
         print('The book already exists.')
     close_connection(con)
 
-def fetch_book():
+def add_student(name, id):
     con = connect_to_db()
     cur = con.cursor()
-    cur.execute('SELECT * FROM books')
-    rows = cur.fetchall()
+    try:
+        cur.execute('INSERT INTO students (name, id) VALUES (?, ?)',(name, id))
+    except:
+        print('ID already registered.')
     close_connection(con)
-    return rows
 
-def view_record(name, title):
+def issue_book(sid, bid):
     con = connect_to_db()
     cur = con.cursor()
-
-    if title!=None and name!=None:
-        cur.execute('SELECT * FROM students WHERE issued_book = ? and name = ?', (title, name))
-    elif title!=None and name==None:
-        cur.execute('SELECT * FROM students WHERE issued_book = ?', (title,))
-    elif title==None and name!=None:
-        cur.execute('SELECT * FROM students WHERE name = ?', (name,))
+    cur.execute('SELECT * FROM lending_record WHERE student_id = ?', (sid,))
+    repeated_id = cur.fetchall()
+    cur.execute('SELECT name FROM students WHERE id = ?', (sid,))
+    rows = cur.fetchall()
+    if not rows:
+        print('No Student with Such ID Registered!!!')
+        close_connection(con)
+        return 0
+    elif repeated_id:
+        print('One Student can Lend Only One Book!!!')
+        close_connection(con)
+        return 0
     else:
+        cur.execute('SELECT title FROM books WHERE id = ? AND amount > 0', (bid,))
+        book = cur.fetchall()
+        try:
+            book = book[0]
+            book = book[0]
+            cur.execute('INSERT INTO lending_record (student_id, issued_book_id) VALUES (?,?)', (sid, bid))
+            cur.execute('UPDATE books SET amount= amount -1 WHERE id = ?', (bid,))
+            close_connection(con)
+            return book
+        except:
+            close_connection(con)
+            print('Book is Not Available Right Now!!!')
+            return 0
+
+def return_book(sid):
+    con = connect_to_db()
+    cur = con.cursor()
+    cur.execute('SELECT issued_book_id FROM lending_record WHERE student_id = ?', (sid,))
+    rows = cur.fetchall()
+    if not rows:
+        print ('Book is not issued to the student...')
+        close_connection(con)
+        return
+    else:
+        bid = rows[0]
+        bid = bid[0] 
+        cur.execute('UPDATE books SET amount = amount + 1 WHERE id = ?', (bid,))
+        cur.execute('DELETE FROM lending_record WHERE student_id = ?', (sid,))
+        print("Book is Returned!!!")
+    close_connection(con)
+
+def remove_student(sid, set):
+    con = connect_to_db()
+    cur = con.cursor()
+    cur.execute('SELECT id FROM lending_record WHERE student_id = ?', (sid,))
+    rows = cur.fetchall()
+    if not rows or set == 1:
+        cur.execute('DELETE FROM students WHERE id = ?', (sid,))
+        cur.execute('DELETE FROM lending_record WHERE student_id = ?', (sid,))
+    else:
+        close_connection(con)
+        return 1
+    close_connection(con)
+
+def remove_book(bid, set):
+    con = connect_to_db()
+    cur = con.cursor()
+    cur.execute('SELECT id FROM lending_record WHERE issued_book_id = ?', (bid,))
+    rows = cur.fetchall()
+    if not rows or set == 1:
+        cur.execute('DELETE FROM books WHERE id = ?', (bid,))
+        cur.execute('DELETE FROM lending_record WHERE issued_book_id = ?', (bid,))
+    else:
+        close_connection(con)
+        return 1
+    close_connection(con)
+
+def update_book(title, author, amount, id):
+    con = connect_to_db()
+    cur = con.cursor()
+    cur.execute('SELECT * FROM lending_record WHERE id = ?', (id,))
+    rows = cur.fetchall()
+    cur.execute('SELECT * FROM books WHERE id = ?', (id,))
+    book_exists = cur.fetchall()
+    if not rows and book_exists:
+        if title==None and author==None and amount==None:
+            print('Please give a value to be Updated. Try: py index.py admin update-book --a modified_author --t modified_title --n modified_amount')
+        elif title!=None and author==None and amount==None:
+            cur.execute('UPDATE books SET title = ? WHERE id = ? ', (title, id))
+        elif author!=None and title==None and amount==None:
+            cur.execute('UPDATE books SET author = ? WHERE id = ?', (author, id))
+        elif amount!=None and title==None and author==None:
+            cur.execute('UPDATE books SET amount = ? WHERE id = ?', (amount, id))
+        elif amount!=None and title!=None and author==None:
+            cur.execute('UPDATE books SET amount = ?, title = ? WHERE id = ?', (amount, title, id))
+        elif amount!=None and title==None and author!=None:
+            cur.execute('UPDATE books SET amount = ?, author = ? WHERE id = ?', (amount, author, id))
+        elif amount==None and title!=None and author!=None:
+            cur.execute('UPDATE books SET author = ?, title = ? WHERE id = ?', (author, title, id))
+        elif amount!=None and title!=None and author!=None:
+            cur.execute('UPDATE books SET amount = ?, author = ?, title = ? WHERE id = ?', (amount, author, title, id))
+        print('Updated!!!')
+    else:
+        print('Sorry! Either Book does not Exist Or it is Issued.')
+    close_connection(con)
+
+def view_student(sid, name):
+    con = connect_to_db()
+    cur = con.cursor()
+    if sid and not name:
+        cur.execute('SELECT * FROM students WHERE id = ?', (sid,))
+    elif not sid and name:
+        cur.execute('SELECT * FROM students WHERE name = ?', (name,))
+    elif sid and name:
+        cur.execute('SELECT * FROM students WHERE id = ? and name = ?', (sid, name))
+    elif not sid and not name:
         cur.execute('SELECT * FROM students')
     rows = cur.fetchall()
+    column_names = [column[0] for column in cur.description]
+    result_rows = [column_names] + rows
     close_connection(con)
-    return rows
+    return result_rows
 
-def return_book(sname, id):
-    con = connect_to_db()
-    cur = con.cursor()
-    cur.execute('SELECT title FROM books WHERE id = ?', (id,))
-    book = cur.fetchall()
-    try:
-        book = book[0]
-        book = book[0]
-        cur.execute('SELECT id FROM students WHERE name = ? AND issued_book= ?', (sname, book))
-        sid = cur.fetchall()
-        sid = sid[0]
-        sid = sid[0]
-        cur.execute('DELETE FROM students WHERE id = ?', (sid,))
-        cur.execute('UPDATE books SET amount = amount + 1 WHERE id = ?', (id,))
-    except:
-        print ('No such book or book is not issued to the student...')
-    close_connection(con)
-
-
-
-def find_book(title, author, id):
+def search_book(title, author, id):
     con = connect_to_db()
     cur = con.cursor()
     if id!=None:
@@ -72,53 +159,68 @@ def find_book(title, author, id):
         cur.execute('SELECT * FROM books WHERE author = ?', (author,))
     else:
         cur.execute('SELECT * FROM books')
-
     rows = cur.fetchall()
+    column_names = [column[0] for column in cur.description]
+    result_rows = [column_names] + rows
     close_connection(con)
-    return rows
+    return result_rows
 
-def delete_book(id):
+def view_record(sid, bid):
     con = connect_to_db()
     cur = con.cursor()
-    cur.execute('DELETE FROM books WHERE id = ?', (id,))
+    if not sid and bid:
+        cur.execute('SELECT students.id AS student_id, students.name, books.id AS book_id, books.title, books.author, books.amount FROM lending_record JOIN books ON lending_record.issued_book_id = books.id JOIN students ON lending_record.student_id = students.id WHERE issued_book_id = ?', (bid,))
+    elif not bid and sid:
+        cur.execute('SELECT students.id AS student_id, students.name, books.id AS book_id, books.title, books.author, books.amount FROM lending_record JOIN books ON lending_record.issued_book_id = books.id JOIN students ON lending_record.student_id = students.id WHERE student_id = ?', (sid,))
+    elif bid and sid:
+        cur.execute('SELECT students.id AS student_id, students.name, books.id AS book_id, books.title, books.author, books.amount FROM lending_record JOIN books ON lending_record.issued_book_id = books.id JOIN students ON lending_record.student_id = students.id WHERE issued_book_id = ? AND student_id = ?', (bid, sid))
+    elif not bid and not sid:
+        cur.execute('SELECT students.id AS student_id, students.name, books.id AS book_id, books.title, books.author, books.amount FROM lending_record JOIN books ON lending_record.issued_book_id = books.id JOIN students ON lending_record.student_id = students.id')
+    rows = cur.fetchall()
+    column_names = [column[0] for column in cur.description]
+    result_rows = [column_names] + rows
     close_connection(con)
+    return result_rows
 
-def update_book(title, author, amount, id):
+
+def my_book(sid):
     con = connect_to_db()
     cur = con.cursor()
-    if title!=None and author==None and amount==None:
-        cur.execute('UPDATE books SET title = ? WHERE id = ? ', (title, id))
-    elif author!=None and title==None and amount==None:
-        cur.execute('UPDATE books SET author = ? WHERE id = ?', (author, id))
-    elif amount!=None and title==None and author==None:
-        cur.execute('UPDATE books SET amount = ? WHERE id = ?', (amount, id))
-    elif amount!=None and title!=None and author==None:
-        cur.execute('UPDATE books SET amount = ?, title = ? WHERE id = ?', (amount, title, id))
-    elif amount!=None and title==None and author!=None:
-        cur.execute('UPDATE books SET amount = ?, author = ? WHERE id = ?', (amount, author, id))
-    elif amount==None and title!=None and author!=None:
-        cur.execute('UPDATE books SET author = ?, title = ? WHERE id = ?', (author, title, id))
-    elif amount!=None and title!=None and author!=None:
-        cur.execute('UPDATE books SET amount = ?, author = ?, title = ? WHERE id = ?', (amount, author, title, id))
+    cur.execute('SELECT books.id, books.title  FROM lending_record JOIN books ON lending_record.issued_book_id = books.id WHERE student_id = ?', (sid,))
+    rows = cur.fetchall()
+    column_names = [column[0] for column in cur.description]
+    result_rows = [column_names] + rows
     close_connection(con)
-
-def retrieve_book(name, id):
+    return result_rows
+##################################################################################
+'''def fetch_book():
     con = connect_to_db()
     cur = con.cursor()
-    cur.execute('UPDATE books SET amount= amount -1 WHERE id = ? AND amount != 0', (id,))
-    cur.execute('SELECT title FROM books WHERE id = ?', (id,))
-    book = cur.fetchall()
-    try:
-        book = book[0]
-        book = book[0]
-        cur.execute('INSERT INTO students (name, issued_book) VALUES (?,?)', (name, book))
-        close_connection(con)
-        return book
-    except:
-        close_connection(con)
-        return 0
+    cur.execute('SELECT * FROM books')
+    rows = cur.fetchall()
+    column_names = [column[0] for column in cur.description]
+    result_rows = [column_names] + rows
+    close_connection(con)
+    return result_rows
 
+def view_record(name, title):
+    con = connect_to_db()
+    cur = con.cursor()
 
-def close_connection(con):
-    con.commit()
-    con.close()
+    if title!=None and name!=None:
+        cur.execute('SELECT id FROM students WHERE name = ?', (name,))
+        cur.execute('SELECT id FROM books WHERE title = ?', (title,))
+    elif title!=None and name==None:
+        cur.execute('SELECT id FROM books WHERE title = ?', (title,))
+    elif title==None and name!=None:
+        cur.execute('SELECT id FROM students WHERE name = ?', (name,))
+    else:
+        cur.execute('SELECT id FROM students')
+        id = cur.fetchall()
+        cur.execute('SELECT * FROM lending_record where id = ?', (id,))
+    
+    rows = cur.fetchall()
+    column_names = [column[0] for column in cur.description]
+    result_rows = [column_names] + rows
+    close_connection(con)
+    return result_rows'''

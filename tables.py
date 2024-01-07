@@ -16,9 +16,18 @@ cur.execute('''
 cur.execute('''
     CREATE TABLE IF NOT EXISTS students (
             name TEXT NOT NULL,
-            issued_book TEXT NOT NULL,
+            id INTEGER PRIMARY KEY
+    )
+''')
+
+cur.execute('''
+    CREATE TABLE IF NOT EXISTS lending_record (
+            student_id INTEGER NOT NULL UNIQUE,
+            issued_book_id INTEGER NOT NULL,
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            UNIQUE(name, issued_book)
+            FOREIGN KEY (student_id) REFERENCES students(id),
+            FOREIGN KEY (issued_book_id) REFERENCES books(id),
+            UNIQUE(student_id, issued_book_id)
     )
 ''')
 
